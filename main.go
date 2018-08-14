@@ -10,6 +10,9 @@ import (
 	"github.com/binance-exchange/go-binance"
 	"github.com/locxiang/bitStrategyEngine/config"
 	"time"
+	"github.com/locxiang/bitStrategyEngine/strategys"
+	"github.com/locxiang/bitStrategyEngine/tradepool"
+	"github.com/locxiang/bitStrategyEngine/dispatcher"
 )
 
 var cfg *config.Config
@@ -22,46 +25,46 @@ func init() {
 	}
 }
 
-var Disp *dispatcher
-
 func main() {
 
-	Disp = NewDispatcher()
-	go Disp.run()
+	//加载数据池
+	btcpool := &tradepool.TradePool{
+		Symbol:   "BTCUSDT",
+		Duration: time.Second * 5,
+	}
+	dispatcher.RegisterPools(btcpool)
+
+	ethpool := &tradepool.TradePool{
+		Symbol:   "ETHUSDT",
+		Duration: time.Second * 10,
+	}
+	dispatcher.RegisterPools(ethpool)
 
 	//加载策略
-	NewDisposableRatioWarn("BTCUSDT", time.Second*5, 0.0003, nil)
-	timeout := time.Now().Add(20 * time.Second)
-	NewLoopRatioWarn("BTCUSDT", time.Second*5, -0.0003, time.Second*5, &timeout)
-	NewLoopRatioWarn("BTCUSDT", time.Second*5, -0.0003, time.Second*5, &timeout)
-
-	//注册数据池到调度器
-	tradePools.Range(func(k, v interface{}) bool {
-		p := v.(*tradePool)
-		Disp.register <- p
-		return true
-	})
+	strategys.NewDisposableRatioWarn(0.0008, time.Time{}, btcpool)
+	timeout := time.Now().Add(30 * time.Second)
+	strategys.NewLoopRatioWarn(0.0008, time.Second*5, timeout, btcpool)
+	strategys.NewLoopRatioWarn(-0.0008, time.Second*5, timeout, ethpool)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	b := NewBinanceService(ctx)
 	fmt.Printf("连接交易所成功 \n")
 
 	//生成假订单
-
-	err := b.NewOrderTest(binance.NewOrderRequest{
-		Symbol:      "BTCUSDT",
-		Quantity:    1,
-		Price:       999,
-		Side:        binance.SideBuy,
-		TimeInForce: binance.GTC,
-		Type:        binance.TypeMarket,
-		Timestamp:   time.Now(),
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(err)
-	return
+	//
+	//err := b.NewOrderTest(binance.NewOrderRequest{
+	//	Symbol:      "BTCUSDT",
+	//	Quantity:    1,
+	//	Price:       999,
+	//	Side:        binance.SideBuy,
+	//	TimeInForce: binance.GTC,
+	//	Type:        binance.TypeMarket,
+	//	Timestamp:   time.Now(),
+	//})
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println(err)
 
 	fmt.Printf("创建websocket连接... ")
 	kech, done, err := b.TradeWebsocket(binance.TradeWebsocketRequest{
@@ -76,7 +79,7 @@ func main() {
 		for {
 			select {
 			case ke := <-kech:
-				Disp.EventAggTrade <- ke
+				dispatcher.Disp.EventAggTrade <- ke
 			case <-done:
 				fmt.Printf("收到关闭命令 \n")
 				break WS_OVER

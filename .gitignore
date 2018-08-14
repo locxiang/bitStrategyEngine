@@ -33,3 +33,6 @@
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
 config.ini
+
+.DS_Store
+bitStrategyEngine
