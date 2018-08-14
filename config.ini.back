@@ -1,0 +1,12 @@
+[exchange]
+Type = binance
+Url = https://www.binance.com
+ApiKey =
+SecretKey =
+Spot = BTCUSDT, ETHUSDT, ESOUSDT
+
+
+[mysql]
+Host =
+Username =
+Password =
