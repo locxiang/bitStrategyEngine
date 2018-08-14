@@ -8,7 +8,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/binance-exchange/go-binance"
-	"github.com/locxiang/btcStrategyEngine/config"
+	"github.com/locxiang/bitStrategyEngine/config"
 	"time"
 )
 
@@ -16,7 +16,7 @@ var cfg *config.Config
 
 func init() {
 	var err error
-	cfg, err = config.Load("/Users/xh/golib/src/github.com/locxiang/btcStrategyEngine/config.ini")
+	cfg, err = config.Load("config.ini")
 	if err != nil {
 		panic(err)
 	}
