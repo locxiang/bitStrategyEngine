@@ -8,18 +8,32 @@ import (
 
 //事件接口
 type EventFace interface {
+	SetId(s string)
+	GetId()  string
 	Handle(strategy Strategy)
 }
 
 type Strategy interface {
-	Check(p TradePool) bool //检测策略是否命中
-	HandleEvents()          //如果命中策略就执行的方法
-	Valid() bool            //判断此策略是否开启
-	GetPool() TradePool		//返回线程池
+	Check() bool             //检测策略是否命中
+	HandleEvents()           //如果命中策略就执行的方法
+	Valid() bool             //判断此策略是否开启
+	GetPool() TradePool      //返回线程池
+	RegisterEvent(EventFace) //注册命中后的事件
+}
+
+type AggTrade struct {
+	*binance.AggTrade
+	Direction binance.OrderSide //方向  Buy  Sell
+}
+
+//计算方向
+func (a *AggTrade) computeDirection() {
+	//TODO 根据挂单数据匹配这个订单是购买还是
+	a.Direction = ""
 }
 
 type TradePool interface {
-	AcceptAggTrade(trade *binance.AggTrade)
+	AcceptAggTrade(trade *AggTrade)
 	GetSymbol() string
 	Key() string
 	Close() error
@@ -85,12 +99,19 @@ func (d *Dispatcher) Run() {
 				pool.Close()
 			}
 		case m := <-d.EventAggTrade:
+			t := &AggTrade{
+				AggTrade: &m.AggTrade,
+			}
+			t.computeDirection()
+
 			for pool := range d.Pools {
 				if pool.GetSymbol() == m.Symbol {
-					pool.AcceptAggTrade(&m.AggTrade)
+					pool.AcceptAggTrade(t)
 					// 循环检查策略
 					for _, s := range pool.StrategyAll() {
-						checkPoolStrategy(s, pool)
+						if checkPoolStrategy(s) {
+							pool.UnregisterStrategy(s)
+						}
 					}
 
 				}
@@ -100,9 +121,9 @@ func (d *Dispatcher) Run() {
 }
 
 //循环检查策略
-func checkPoolStrategy(s Strategy, pool TradePool) bool {
+func checkPoolStrategy(s Strategy) bool {
 	//策略有效 并且命中  执行headle
-	if s.Valid() && s.Check(pool) {
+	if s.Valid() && s.Check() {
 		go s.HandleEvents() //避免执行事件太长耽误其他策略
 		return true
 	}
