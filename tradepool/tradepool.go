@@ -5,7 +5,6 @@ import (
 	"time"
 	"github.com/locxiang/bitStrategyEngine/dispatcher"
 	"sync"
-	"fmt"
 )
 
 /**
@@ -49,10 +48,8 @@ func (e *TradePool) UnregisterStrategy(s dispatcher.Strategy) {
 	defer e.Unlock()
 	e.Lock()
 
-	fmt.Printf("命中策略后，删除策略 \n")
 	for i, v := range e.strategyGroup {
 		if v == s {
-			fmt.Printf("找到策略-》删除 \n")
 			e.strategyGroup = append(e.strategyGroup[:i], e.strategyGroup[i+1:]...)
 			break
 		}

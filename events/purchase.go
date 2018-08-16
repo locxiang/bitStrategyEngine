@@ -137,7 +137,7 @@ func (p *VirtualPurchase) CalculatingBenefits() float64 {
 
 //追加写入文件
 func (p *VirtualPurchase) traceFile(content string) {
-	fd, _ := os.OpenFile(p.Id+"_benefits.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	fd, _ := os.OpenFile("benefits_"+p.Id+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	defer fd.Close()
 
 	fdContent := strings.Join([]string{content, "\n"}, "")

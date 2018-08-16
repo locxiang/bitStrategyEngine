@@ -34,33 +34,38 @@ func init() {
 
 func main() {
 
-	//{
-	//	sg := strategyGroup{
-	//		util.GetRandomString(8), "BTCUSDT", 5 * time.Second, 0.0004, nil, 0.1, 0.004, 0.003,
-	//	}
-	//	NewStrategyGroup(sg)
-	//}
-	//
-	//{
-	//	sg := strategyGroup{
-	//		util.GetRandomString(8), "BTCUSDT", 5 * time.Second, 0.0008, nil, 0.1, 0.004, 0.003,
-	//	}
-	//	NewStrategyGroup(sg)
-	//}
-
-	//{
-	//	sg := strategyGroup{
-	//		util.GetRandomString(8), "BTCUSDT", 3 * time.Second, 0.0005, nil, 0.1, 0.003, 0.002,
-	//	}
-	//	NewStrategyGroup(sg)
-	//}
+	{
+		sg := strategyGroup{
+			util.GetRandomString(8), "BTCUSDT", 5 * time.Second, 0.0004, nil, 0.1, 0.004, 0.003,
+		}
+		NewStrategyGroup(sg)
+		sg.saveStrategyGroup()
+	}
 
 	{
 		sg := strategyGroup{
-			util.GetRandomString(8), "BTCUSDT", 10 * time.Second, 0.0001, nil, 0.1, 0.001, 0.001,
+			util.GetRandomString(8), "BTCUSDT", 5 * time.Second, 0.0008, nil, 0.1, 0.004, 0.003,
 		}
 		NewStrategyGroup(sg)
+		sg.saveStrategyGroup()
 	}
+
+	{
+		sg := strategyGroup{
+			util.GetRandomString(8), "BTCUSDT", 3 * time.Second, 0.0005, nil, 0.1, 0.003, 0.002,
+		}
+		NewStrategyGroup(sg)
+		sg.saveStrategyGroup()
+	}
+
+	//{
+	//	sg := strategyGroup{
+	//		util.GetRandomString(8), "BTCUSDT", 10 * time.Second, 0.0001, nil, 0.1, 0.0001, 0.0001,
+	//	}
+	//	NewStrategyGroup(sg)
+	//	sg.saveStrategyGroup()
+	//
+	//}
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	b := NewBinanceService(ctx)
@@ -163,6 +168,15 @@ func (sg *strategyGroup) String() string {
 	return str
 }
 
+func (sg *strategyGroup) saveStrategyGroup() {
+	fd, _ := os.OpenFile("strategy_group.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	defer fd.Close()
+
+	content := fmt.Sprintf("ID:%s strategy:%s", sg.Id, sg.String())
+	fdContent := strings.Join([]string{content, "\n"}, "")
+	fd.WriteString(fdContent)
+}
+
 func NewStrategyGroup(sg strategyGroup) {
 
 	fmt.Printf("开启策略，名字：%s \n", sg.String())
@@ -171,18 +185,16 @@ func NewStrategyGroup(sg strategyGroup) {
 		Symbol:   sg.symbol,
 		Duration: sg.poolTime,
 	}
-	dispatcher.RegisterPools(btcpool)
+	o := dispatcher.RegisterPools(btcpool)
 
 	//加载策略
 	//timeout := time.Now().Add(30 * time.Second)
-	strategyBTC, done := strategys.NewRatioWarn(sg.ratio, sg.timeout, btcpool)
+	strategyBTC, done := strategys.NewRatioWarn(sg.ratio, sg.timeout, o)
 	go func() {
 		select {
 		case <-done:
 			fmt.Printf("done %s\n", sg.String())
 			time.Sleep(3 * time.Second)
-
-			sg.Id = util.GetRandomString(8)
 			NewStrategyGroup(sg)
 		}
 	}()
@@ -197,11 +209,6 @@ func NewStrategyGroup(sg strategyGroup) {
 	}
 	strategyBTC.RegisterEvent(eventVirtualPurchase)
 
-	//TODO 保存组合id
-	fd, _ := os.OpenFile("strategy_group.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	defer fd.Close()
 
-	content := fmt.Sprintf("ID:%s strategy:%s", sg.Id, sg.String())
-	fdContent := strings.Join([]string{content, "\n"}, "")
-	fd.WriteString(fdContent)
 }
+

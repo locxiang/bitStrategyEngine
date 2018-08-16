@@ -8,8 +8,6 @@ import (
 
 //事件接口
 type EventFace interface {
-	SetId(s string)
-	GetId()  string
 	Handle(strategy Strategy)
 }
 
@@ -60,13 +58,16 @@ func init() {
 }
 
 //注册数据池
-func RegisterPools(t TradePool) {
+func RegisterPools(t TradePool) TradePool{
 	defer tradePools.Unlock()
 	tradePools.Lock()
 
-	if _, ok := tradePools.m[t.Key()]; !ok {
+	if t1, ok := tradePools.m[t.Key()]; !ok {
 		tradePools.m[t.Key()] = t
 		Disp.Register <- t
+		return t
+	}else{
+		return t1
 	}
 
 }
